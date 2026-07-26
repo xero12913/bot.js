@@ -1,4 +1,6 @@
 const {
+  Client,
+  GatewayIntentBits,
   ActionRowBuilder,
   ButtonBuilder,
   ButtonStyle,
@@ -6,11 +8,35 @@ const {
 } = require("discord.js");
 
 
+// إنشاء البوت
+const client = new Client({
+  intents: [
+    GatewayIntentBits.Guilds,
+    GatewayIntentBits.GuildMessages,
+    GatewayIntentBits.MessageContent
+  ]
+});
+
+
+// الروليت
 let roulettePlayers = [];
 let rouletteRunning = false;
 
 
+// الكراسي
+let chairPlayers = [];
+let chairRunning = false;
 
+
+
+client.once("ready", () => {
+  console.log(`✅ Logged in as ${client.user.tag}`);
+});
+
+
+
+// ضع التوكن في Render باسم TOKEN
+client.login(process.env.TOKEN);
 client.on("messageCreate", async (message) => {
 
   if (message.author.bot) return;
@@ -73,10 +99,10 @@ client.on("messageCreate", async (message) => {
 
 
 
-    setTimeout(()=>{
+    setTimeout(() => {
 
 
-      if(roulettePlayers.length < 2){
+      if (roulettePlayers.length < 2) {
 
         rouletteRunning = false;
 
@@ -97,6 +123,11 @@ client.on("messageCreate", async (message) => {
   }
 
 });
+
+
+
+
+
 async function startRoulette(channel) {
 
 
@@ -109,6 +140,7 @@ async function startRoulette(channel) {
   while (roulettePlayers.length > 1) {
 
 
+
     let chooser =
       roulettePlayers[
         Math.floor(Math.random() * roulettePlayers.length)
@@ -119,11 +151,8 @@ async function startRoulette(channel) {
     let options = roulettePlayers
       .filter(p => p.id !== chooser.id)
       .map(p => ({
-
-        label: p.username.slice(0,25),
-
-        value: p.id
-
+        label:p.username.slice(0,25),
+        value:p.id
       }));
 
 
@@ -138,23 +167,9 @@ async function startRoulette(channel) {
 
 
 
-    const leaveButton = new ButtonBuilder()
+    const row = new ActionRowBuilder()
 
-      .setCustomId("roulette_game_leave")
-
-      .setLabel("🚪 انسحاب")
-
-      .setStyle(ButtonStyle.Danger);
-
-
-
-    const row1 = new ActionRowBuilder()
       .addComponents(menu);
-
-
-
-    const row2 = new ActionRowBuilder()
-      .addComponents(leaveButton);
 
 
 
@@ -165,10 +180,7 @@ async function startRoulette(channel) {
 
 ⏳ لديك 30 ثانية لاختيار لاعب لطرده`,
 
-      components:[
-        row1,
-        row2
-      ]
+      components:[row]
 
     });
 
@@ -190,107 +202,55 @@ async function startRoulette(channel) {
     collector.on("collect", async(interaction)=>{
 
 
-
-      if(interaction.customId === "roulette_kick"){
-
-
-        if(interaction.user.id !== chooser.id){
-
-          return interaction.reply({
-
-            content:"❌ ليس دورك",
-
-            ephemeral:true
-
-          });
-
-        }
+      if(interaction.customId !== "roulette_kick")
+      return;
 
 
 
-        const target =
-        roulettePlayers.find(
-          p=>p.id === interaction.values[0]
-        );
+      if(interaction.user.id !== chooser.id){
+
+        return interaction.reply({
+
+          content:"❌ ليس دورك",
+
+          ephemeral:true
+
+        });
+
+      }
 
 
 
-        roulettePlayers =
-        roulettePlayers.filter(
-          p=>p.id !== target.id
-        );
+      const target =
+      roulettePlayers.find(
+        p=>p.id === interaction.values[0]
+      );
 
 
 
-        kicked = true;
+      roulettePlayers =
+      roulettePlayers.filter(
+        p=>p.id !== target.id
+      );
 
 
 
-        await interaction.update({
+      kicked=true;
 
-          content:
+
+
+      await interaction.update({
+
+        content:
 `💣 | تم طرد ${target} من اللعبة، سيتم بدء الجولة القادمة في بضع ثواني`,
 
-          components:[]
+        components:[]
 
-        });
-
-
-
-        collector.stop();
-
-
-      }
+      });
 
 
 
-
-      if(interaction.customId === "roulette_game_leave"){
-
-
-
-        const player =
-        roulettePlayers.find(
-          p=>p.id === interaction.user.id
-        );
-
-
-
-        if(!player){
-
-          return interaction.reply({
-
-            content:"❌ أنت غير مشارك في اللعبة",
-
-            ephemeral:true
-
-          });
-
-        }
-
-
-
-        roulettePlayers =
-        roulettePlayers.filter(
-          p=>p.id !== interaction.user.id
-        );
-
-
-
-        await interaction.reply({
-
-          content:
-`🚪 لقد انسحب اللاعب ${interaction.user} من اللعبة، سيتم بدء الجولة القادمة في بضع ثواني`
-
-        });
-
-
-
-        collector.stop();
-
-
-      }
-
+      collector.stop();
 
 
     });
@@ -305,28 +265,18 @@ async function startRoulette(channel) {
 
 
 
-
     if(!kicked){
 
 
-      if(roulettePlayers.includes(chooser)){
+      roulettePlayers =
+      roulettePlayers.filter(
+        p=>p.id !== chooser.id
+      );
 
 
-        roulettePlayers =
-        roulettePlayers.filter(
-          p=>p.id !== chooser.id
-        );
-
-
-
-        await channel.send(
-
+      await channel.send(
 `❌ تم إخراج اللاعب ${chooser} لعدم تفاعله`
-
-        );
-
-
-      }
+      );
 
 
     }
@@ -340,224 +290,194 @@ async function startRoulette(channel) {
 
 
 
+  await channel.send(
 
-  await channel.send({
-
-    content:
 `👑 الفائز هو ${roulettePlayers[0]}!
 
 🎉 مبروك`
 
-  });
+  );
 
 
 
-  roulettePlayers = [];
-
-  rouletteRunning = false;
-
-
-}
-client.on("interactionCreate", async (interaction)=>{
-
-
-if(!interaction.isButton()) return;
-
-
-
-// دخول الروليت
-if(interaction.customId === "roulette_join"){
-
-
-if(!rouletteRunning){
-
-return interaction.reply({
-
-content:"❌ لا توجد روليت حاليا",
-
-ephemeral:true
-
-});
-
-}
-
-
-
-if(roulettePlayers.length >= 15){
-
-return interaction.reply({
-
-content:"❌ الروليت ممتلئة",
-
-ephemeral:true
-
-});
-
-}
-
-
-
-if(roulettePlayers.some(
-p=>p.id === interaction.user.id
-)){
-
-
-return interaction.reply({
-
-content:"❗ أنت مشارك بالفعل",
-
-ephemeral:true
-
-});
-
-}
-
-
-
-roulettePlayers.push(
-interaction.user
-);
-
-
-
-return interaction.reply({
-
-content:"✅ دخلت الروليت 🎰",
-
-ephemeral:true
-
-});
-
-}
-
-
-
-
-
-// خروج الروليت
-if(interaction.customId === "roulette_leave"){
-
-
-if(!roulettePlayers.some(
-p=>p.id === interaction.user.id
-)){
-
-
-return interaction.reply({
-
-content:"❌ أنت غير مشارك في اللعبة",
-
-ephemeral:true
-
-});
+  roulettePlayers=[];
+  rouletteRunning=false;
 
 
 }
+client.on("interactionCreate", async (interaction) => {
+
+  if (!interaction.isButton()) return;
 
 
 
-roulettePlayers =
-roulettePlayers.filter(
-p=>p.id !== interaction.user.id
-);
+  // دخول الروليت
+  if (interaction.customId === "roulette_join") {
+
+
+    if (!rouletteRunning) {
+
+      return interaction.reply({
+        content:"❌ لا توجد روليت حاليا",
+        ephemeral:true
+      });
+
+    }
 
 
 
-return interaction.reply({
+    if (roulettePlayers.length >= 15) {
 
-content:
+      return interaction.reply({
+        content:"❌ الروليت ممتلئة",
+        ephemeral:true
+      });
+
+    }
+
+
+
+    if (roulettePlayers.some(
+      p => p.id === interaction.user.id
+    )) {
+
+      return interaction.reply({
+        content:"❗ أنت مشارك بالفعل",
+        ephemeral:true
+      });
+
+    }
+
+
+
+    roulettePlayers.push(interaction.user);
+
+
+
+    return interaction.reply({
+      content:"✅ دخلت الروليت 🎰",
+      ephemeral:true
+    });
+
+
+  }
+
+
+
+
+  // خروج الروليت
+  if (interaction.customId === "roulette_leave") {
+
+
+    if (!roulettePlayers.some(
+      p => p.id === interaction.user.id
+    )) {
+
+
+      return interaction.reply({
+        content:"❌ أنت غير مشارك في اللعبة",
+        ephemeral:true
+      });
+
+
+    }
+
+
+
+    roulettePlayers =
+    roulettePlayers.filter(
+      p => p.id !== interaction.user.id
+    );
+
+
+
+    return interaction.reply({
+
+      content:
 `🚪 لقد انسحب اللاعب ${interaction.user} من اللعبة، سيتم بدء الجولة القادمة في بضع ثواني`
 
+    });
+
+
+  }
+
 });
 
 
-}
-
-
-});
 
 
 
-
-
-// ==========================
+// ======================
 // 🪑 لعبة الكراسي
-// ==========================
+// ======================
 
 
-let chairPlayers = [];
-let chairRunning = false;
+client.on("messageCreate", async (message) => {
 
 
-
-client.on("messageCreate", async(message)=>{
-
-
-if(message.author.bot) return;
+  if (message.author.bot) return;
 
 
 
-if(message.content === "-ك"){
+  if (message.content === "-ك") {
 
 
 
-if(!message.member.permissions.has("Administrator")){
+    if (!message.member.permissions.has("Administrator")) {
 
-return message.reply(
-"❌ للأداريين فقط"
-);
+      return message.reply("❌ للأداريين فقط");
 
-}
+    }
 
 
 
-if(chairRunning){
+    if (chairRunning) {
 
-return message.reply(
-"🪑 يوجد لعبة كراسي شغالة حاليا"
-);
+      return message.reply(
+        "🪑 يوجد لعبة كراسي شغالة حاليا"
+      );
 
-}
-
-
-
-chairPlayers=[];
-chairRunning=true;
+    }
 
 
 
-const join = new ButtonBuilder()
-
-.setCustomId("chair_join")
-
-.setLabel("🪑 دخول")
-
-.setStyle(ButtonStyle.Success);
+    chairPlayers=[];
+    chairRunning=true;
 
 
 
-const leave = new ButtonBuilder()
+    const join = new ButtonBuilder()
 
-.setCustomId("chair_leave")
+      .setCustomId("chair_join")
 
-.setLabel("🚪 خروج")
+      .setLabel("🪑 دخول")
 
-.setStyle(ButtonStyle.Danger);
-
-
-
-const row = new ActionRowBuilder()
-
-.addComponents(
-join,
-leave
-);
+      .setStyle(ButtonStyle.Success);
 
 
 
-await message.channel.send({
+    const leave = new ButtonBuilder()
 
-content:
+      .setCustomId("chair_leave")
+
+      .setLabel("🚪 خروج")
+
+      .setStyle(ButtonStyle.Danger);
+
+
+
+    const row = new ActionRowBuilder()
+
+      .addComponents(
+        join,
+        leave
+      );
+
+
+
+    await message.channel.send({
+
+      content:
 `🪑 **كراسي Xero**
 
 🟢 دخول للمشاركة
@@ -566,221 +486,138 @@ content:
 ⏳ البداية بعد 80 ثانية
 👥 الحد الأقصى: 15 لاعب`,
 
-components:[row]
+      components:[row]
+
+    });
+
+
+
+    setTimeout(() => {
+
+
+      if (chairPlayers.length < 3) {
+
+        chairRunning=false;
+
+        return message.channel.send(
+          "❌ عدد اللاعبين غير كافي"
+        );
+
+      }
+
+
+
+      startChairs(message.channel);
+
+
+    },80000);
+
+
+
+  }
+
 
 });
+async function startChairs(channel) {
+
+
+  await channel.send(
+    `🪑 بدأت لعبة الكراسي بـ ${chairPlayers.length} لاعبين`
+  );
 
 
 
-setTimeout(()=>{
+  while (chairPlayers.length > 1) {
 
 
-if(chairPlayers.length < 3){
+    await channel.send(
+      "🎵 بدأت الجولة..."
+    );
 
-chairRunning=false;
 
-return message.channel.send(
-"❌ عدد اللاعبين غير كافي"
-);
-
-}
+    await new Promise(r => setTimeout(r,5000));
 
 
 
-startChairs(message.channel);
-
-
-},80000);
-
-
-
-}
-
-
-});
-async function startChairs(channel){
-
-
-await channel.send(
-`🪑 بدأت لعبة الكراسي بـ ${chairPlayers.length} لاعبين`
-);
+    // الكراسي أقل من اللاعبين بـ 2
+    let removeCount = 2;
 
 
 
-while(chairPlayers.length > 1){
-
-
-await channel.send(
-"🎵 بدأت الجولة..."
-);
+    if (chairPlayers.length <= 3) {
+      removeCount = 1;
+    }
 
 
 
-await new Promise(r=>setTimeout(r,5000));
+    let losers = [];
 
 
 
-// عدد الخارجين = عدد اللاعبين - عدد الكراسي
-// الكراسي أقل من اللاعبين بـ 2
-let removeCount = 2;
+    while (losers.length < removeCount) {
+
+
+      let loser =
+      chairPlayers[
+        Math.floor(
+          Math.random() * chairPlayers.length
+        )
+      ];
 
 
 
-if(chairPlayers.length <= 3){
+      if (!losers.includes(loser)) {
 
-removeCount = 1;
+        losers.push(loser);
 
-}
-
-
-
-let losers = [];
+      }
 
 
-
-while(losers.length < removeCount){
-
-
-let loser =
-chairPlayers[
-Math.floor(
-Math.random()*chairPlayers.length
-)
-];
+    }
 
 
 
-if(!losers.includes(loser)){
-
-losers.push(loser);
-
-}
-
-
-}
+    chairPlayers =
+    chairPlayers.filter(
+      p => !losers.includes(p)
+    );
 
 
 
-chairPlayers =
-chairPlayers.filter(
-p=>!losers.includes(p)
-);
+    for (const loser of losers) {
 
 
-
-for(const loser of losers){
-
-
-await channel.send(
+      await channel.send(
 
 `💺❌ | تم إخراج اللاعب ${loser} لعدم وجود كرسي، سيتم بدء الجولة القادمة في بضع ثواني`
 
-);
+      );
 
 
-}
-
-
-
-await new Promise(r=>setTimeout(r,3000));
-
-
-}
+    }
 
 
 
+    await new Promise(r => setTimeout(r,3000));
 
-await channel.send(
+
+  }
+
+
+
+
+  await channel.send(
 
 `👑 الفائز هو ${chairPlayers[0]}
 
 🎉 مبروك`
 
-);
+  );
 
 
 
-chairPlayers=[];
-chairRunning=false;
-
-
-}
-
-
-
-
-
-client.on("interactionCreate", async(interaction)=>{
-
-
-if(!interaction.isButton()) return;
-
-
-
-// دخول الكراسي
-
-if(interaction.customId==="chair_join"){
-
-
-
-if(!chairRunning){
-
-return interaction.reply({
-
-content:"❌ لا توجد لعبة حاليا",
-
-ephemeral:true
-
-});
-
-}
-
-
-
-if(chairPlayers.length>=15){
-
-return interaction.reply({
-
-content:"❌ اللعبة ممتلئة",
-
-ephemeral:true
-
-});
-
-}
-
-
-
-if(chairPlayers.some(
-p=>p.id===interaction.user.id
-)){
-
-
-return interaction.reply({
-
-content:"❗ أنت مشارك بالفعل",
-
-ephemeral:true
-
-});
-
-}
-
-
-
-chairPlayers.push(
-interaction.user
-);
-
-
-
-return interaction.reply({
-
-content:"✅ دخلت لعبة الكراسي 🪑",
-
-ephemeral:true
-
-});
+  chairPlayers=[];
+  chairRunning=false;
 
 
 }
@@ -789,46 +626,124 @@ ephemeral:true
 
 
 
-// خروج الكراسي
-
-if(interaction.customId==="chair_leave"){
+client.on("interactionCreate", async (interaction) => {
 
 
-
-if(!chairPlayers.some(
-p=>p.id===interaction.user.id
-)){
-
-
-return interaction.reply({
-
-content:"❌ أنت غير مشارك في اللعبة",
-
-ephemeral:true
-
-});
-
-}
+  if (!interaction.isButton()) return;
 
 
 
-chairPlayers =
-chairPlayers.filter(
-p=>p.id!==interaction.user.id
-);
+  // دخول الكراسي
+  if (interaction.customId === "chair_join") {
 
 
 
-return interaction.reply({
+    if (!chairRunning) {
 
-content:
+      return interaction.reply({
+
+        content:"❌ لا توجد لعبة حاليا",
+
+        ephemeral:true
+
+      });
+
+    }
+
+
+
+    if (chairPlayers.length >= 15) {
+
+      return interaction.reply({
+
+        content:"❌ اللعبة ممتلئة",
+
+        ephemeral:true
+
+      });
+
+    }
+
+
+
+    if (chairPlayers.some(
+      p => p.id === interaction.user.id
+    )) {
+
+
+      return interaction.reply({
+
+        content:"❗ أنت مشارك بالفعل",
+
+        ephemeral:true
+
+      });
+
+    }
+
+
+
+    chairPlayers.push(
+      interaction.user
+    );
+
+
+
+    return interaction.reply({
+
+      content:"✅ دخلت لعبة الكراسي 🪑",
+
+      ephemeral:true
+
+    });
+
+
+  }
+
+
+
+
+
+  // خروج الكراسي
+  if (interaction.customId === "chair_leave") {
+
+
+
+    if (!chairPlayers.some(
+      p => p.id === interaction.user.id
+    )) {
+
+
+      return interaction.reply({
+
+        content:"❌ أنت غير مشارك في اللعبة",
+
+        ephemeral:true
+
+      });
+
+
+    }
+
+
+
+    chairPlayers =
+    chairPlayers.filter(
+      p => p.id !== interaction.user.id
+    );
+
+
+
+    return interaction.reply({
+
+      content:
 `🚪 لقد انسحب اللاعب ${interaction.user} من اللعبة، سيتم بدء الجولة القادمة في بضع ثواني`
 
+    });
+
+
+  }
+
+
 });
-
-
-}
-
-
-
-});
+client.login(process.env.TOKEN);
