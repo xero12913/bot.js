@@ -238,3 +238,298 @@ client.on("interactionCreate", async interaction => {
   }
 
 });
+const {
+  ActionRowBuilder,
+  ButtonBuilder,
+  ButtonStyle
+} = require("discord.js");
+
+
+let chairPlayers = [];
+let chairRunning = false;
+
+
+
+client.on("messageCreate", async (message) => {
+
+  if(message.author.bot) return;
+
+
+  if(message.content === "-ك") {
+
+
+    if(!message.member.permissions.has("Administrator")){
+      return message.reply("❌ للأداريين فقط");
+    }
+
+
+    if(chairRunning){
+      return message.reply("🪑 يوجد لعبة كراسي شغالة حاليا");
+    }
+
+
+    chairPlayers = [];
+    chairRunning = true;
+
+
+
+    const join = new ButtonBuilder()
+    .setCustomId("chair_join")
+    .setLabel("🪑 دخول")
+    .setStyle(ButtonStyle.Success);
+
+
+
+    const leave = new ButtonBuilder()
+    .setCustomId("chair_leave")
+    .setLabel("🚪 خروج")
+    .setStyle(ButtonStyle.Danger);
+
+
+
+    const row = new ActionRowBuilder()
+    .addComponents(join,leave);
+
+
+
+    await message.channel.send({
+
+      content:
+`🪑 **كراسي Xero**
+
+🟢 دخول للمشاركة
+🚪 خروج
+
+⏳ البداية بعد 80 ثانية
+👥 الحد الأقصى: 15 لاعب`,
+
+      components:[row]
+
+    });
+
+
+
+    setTimeout(()=>{
+
+
+      if(chairPlayers.length < 3){
+
+        chairRunning=false;
+
+        return message.channel.send(
+          "❌ عدد اللاعبين غير كافي"
+        );
+
+      }
+
+
+      startChairs(message.channel);
+
+
+    },80000);
+
+
+
+  }
+
+});
+
+
+
+
+
+async function startChairs(channel){
+
+
+await channel.send(
+`🪑 بدأت لعبة الكراسي بـ ${chairPlayers.length} لاعبين`
+);
+
+
+
+while(chairPlayers.length > 1){
+
+
+await new Promise(r=>setTimeout(r,5000));
+
+
+
+// عدد الأشخاص الذين لا يجدون كرسي
+let removeCount = 2;
+
+
+
+if(chairPlayers.length <= 3){
+removeCount = 1;
+}
+
+
+
+let losers=[];
+
+
+
+while(losers.length < removeCount){
+
+
+let loser =
+chairPlayers[
+Math.floor(Math.random()*chairPlayers.length)
+];
+
+
+
+if(!losers.includes(loser)){
+losers.push(loser);
+}
+
+
+}
+
+
+
+
+chairPlayers =
+chairPlayers.filter(
+p=>!losers.includes(p)
+);
+
+
+
+for(const loser of losers){
+
+await channel.send(
+`💺❌ | تم إخراج اللاعب ${loser} لعدم وجود كرسي، سيتم بدء الجولة القادمة في بضع ثواني`
+);
+
+}
+
+
+
+await new Promise(r=>setTimeout(r,3000));
+
+
+}
+
+
+
+
+await channel.send(
+`👑 الفائز هو ${chairPlayers[0]}
+
+🎉 مبروك`
+);
+
+
+
+chairPlayers=[];
+chairRunning=false;
+
+
+}
+
+
+
+
+
+
+client.on("interactionCreate", async(interaction)=>{
+
+
+if(!interaction.isButton()) return;
+
+
+
+if(interaction.customId==="chair_join"){
+
+
+
+if(!chairRunning){
+
+return interaction.reply({
+content:"❌ لا توجد لعبة حاليا",
+ephemeral:true
+});
+
+}
+
+
+
+if(chairPlayers.length>=15){
+
+return interaction.reply({
+content:"❌ اللعبة ممتلئة",
+ephemeral:true
+});
+
+}
+
+
+
+if(chairPlayers.includes(interaction.user)){
+
+return interaction.reply({
+content:"❗ أنت مشارك بالفعل",
+ephemeral:true
+});
+
+}
+
+
+
+chairPlayers.push(interaction.user);
+
+
+
+return interaction.reply({
+content:"✅ دخلت لعبة الكراسي 🪑",
+ephemeral:true
+});
+
+
+}
+
+
+
+
+
+if(interaction.customId==="chair_leave"){
+
+
+
+if(!chairPlayers.includes(interaction.user)){
+
+
+return interaction.reply({
+
+content:"❌ أنت غير مشارك في اللعبة",
+
+ephemeral:true
+
+});
+
+
+}
+
+
+
+chairPlayers =
+chairPlayers.filter(
+p=>p.id!==interaction.user.id
+);
+
+
+
+return interaction.reply({
+
+content:
+`🚪 لقد انسحب اللاعب ${interaction.user} من اللعبة، سيتم بدء الجولة القادمة في بضع ثواني`
+
+});
+
+
+}
+
+
+
+});
