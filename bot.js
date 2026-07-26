@@ -1,4 +1,15 @@
+const express = require("express");
 const { Client, GatewayIntentBits } = require("discord.js");
+
+const app = express();
+
+app.get("/", (req, res) => {
+  res.send("Xero Bot is online!");
+});
+
+app.listen(process.env.PORT || 3000, () => {
+  console.log("Web server started");
+});
 
 const client = new Client({
   intents: [
@@ -34,6 +45,12 @@ client.on("messageCreate", async (message) => {
 
   if (command === "مافيا") {
     message.reply("🕵️ تم بدء لعبة المافيا!");
+  }
+
+  if (command === "حجر") {
+    const choices = ["🪨 حجر", "📄 ورقة", "✂️ مقص"];
+    const result = choices[Math.floor(Math.random() * choices.length)];
+    message.reply(`اختياري: ${result}`);
   }
 });
 
