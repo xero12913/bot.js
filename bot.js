@@ -18,7 +18,7 @@ client.on("messageCreate", async (message) => {
   if (message.author.bot) return;
   if (!message.content.startsWith(prefix)) return;
 
-  const command = message.content.slice(prefix.length);
+  const command = message.content.slice(prefix.length).trim();
 
   if (command === "روليت") {
     message.reply("🎰 جاري تشغيل الروليت...");
@@ -31,6 +31,12 @@ client.on("messageCreate", async (message) => {
   if (command === "مافيا") {
     message.reply("🕵️ تم بدء لعبة المافيا!");
   }
+
+  if (command === "حجر") {
+    const choices = ["🪨 حجر", "📄 ورقة", "✂️ مقص"];
+    const result = choices[Math.floor(Math.random() * choices.length)];
+    message.reply(`اختياري: ${result}`);
+  }
 });
 
-client.login("MTUzMDgxMjQ1NTY4NzgxOTQwNQ.GzKZOT.0OimOhnIzk6waEKWQVWN7qETj8ENF6_dAXFxhI");
+client.login(process.env.TOKEN);
