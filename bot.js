@@ -33,4 +33,4 @@ client.on("messageCreate", async (message) => {
   }
 });
 
-client.login("توكن_البوت_هنا");
+client.login("MTUzMDgxMjQ1NTY4NzgxOTQwNQ.GDBa5t.bTtfRZ1DqblS7bAyHtT8k7l_kB0MUF1ioCEU84");
